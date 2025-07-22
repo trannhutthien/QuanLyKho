@@ -71,4 +71,3 @@ class DatabaseConnection {
 
 export const dbConnection = DatabaseConnection.getInstance();
 export { sql };
-

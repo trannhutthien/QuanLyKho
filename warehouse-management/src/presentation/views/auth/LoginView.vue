@@ -1,0 +1,37 @@
+<template>
+  <div class="login-container">
+    <div class="login-card">
+      <h2>Đăng Nhập</h2>
+      <LoginForm />
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import LoginForm from '../../components/auth/LoginForm.vue'
+</script>
+
+<style scoped>
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.login-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-card h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+</style>
