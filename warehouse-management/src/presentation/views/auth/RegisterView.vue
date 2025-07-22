@@ -1,17 +1,19 @@
 <template>
   <div class="register-container">
     <div class="register-card">
-      <h2>Đăng Ký</h2>
+      <h2>🏢 Warehouse Management</h2>
+      <h3>Đăng ký tài khoản</h3>
+      
       <form @submit.prevent="handleRegister" class="register-form">
         <div class="form-group">
-          <label for="tenNguoiDung">Tên người dùng:</label>
+          <label for="tenNguoiDung">Họ tên:</label>
           <input
             id="tenNguoiDung"
             v-model="registerData.tenNguoiDung"
             type="text"
             required
-            class="form-control"
-            placeholder="Nhập tên người dùng"
+            :disabled="loading"
+            placeholder="Nhập họ tên"
           />
         </div>
 
@@ -22,20 +24,31 @@
             v-model="registerData.email"
             type="email"
             required
-            class="form-control"
+            :disabled="loading"
             placeholder="Nhập email"
           />
         </div>
-        
+
         <div class="form-group">
-          <label for="password">Mật khẩu:</label>
+          <label for="soDienThoai">Số điện thoại:</label>
           <input
-            id="password"
+            id="soDienThoai"
+            v-model="registerData.soDienThoai"
+            type="tel"
+            :disabled="loading"
+            placeholder="Nhập số điện thoại (tùy chọn)"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="matKhau">Mật khẩu:</label>
+          <input
+            id="matKhau"
             v-model="registerData.matKhau"
             type="password"
             required
-            class="form-control"
-            placeholder="Nhập mật khẩu"
+            :disabled="loading"
+            placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
           />
         </div>
 
@@ -46,26 +59,20 @@
             v-model="confirmPassword"
             type="password"
             required
-            class="form-control"
+            :disabled="loading"
             placeholder="Nhập lại mật khẩu"
           />
         </div>
         
-        <div v-if="error" class="error-message">
-          {{ error }}
-        </div>
+        <div v-if="error" class="error">{{ error }}</div>
         
-        <button 
-          type="submit" 
-          :disabled="loading"
-          class="btn-register"
-        >
-          {{ loading ? 'Đang đăng ký...' : 'Đăng ký' }}
+        <button type="submit" :disabled="loading" class="register-btn">
+          {{ loading ? '⏳ Đang đăng ký...' : '📝 Đăng ký' }}
         </button>
 
         <div class="login-link">
           <p>Đã có tài khoản? 
-            <router-link to="/login" class="link">Đăng nhập ngay</router-link>
+            <router-link to="/login">Đăng nhập ngay</router-link>
           </p>
         </div>
       </form>
@@ -74,61 +81,56 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { AuthService } from '../../../application/services/auth/AuthService'
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { AuthService } from '../../../application/services/auth/AuthService';
 
-interface RegisterData {
-  tenNguoiDung: string
-  email: string
-  matKhau: string
-}
+// Component xử lý register UI với validation
+const router = useRouter();
+const authService = new AuthService();
 
-const router = useRouter()
-const authService = new AuthService()
-
-const registerData = ref<RegisterData>({
+const registerData = ref({
   tenNguoiDung: '',
   email: '',
-  matKhau: ''
-})
+  matKhau: '',
+  soDienThoai: ''
+});
 
-const confirmPassword = ref('')
-const loading = ref(false)
-const error = ref('')
+const confirmPassword = ref('');
+const loading = ref(false);
+const error = ref('');
 
-const handleRegister = async (): Promise<void> => {
-  error.value = ''
+const handleRegister = async () => {
+  error.value = '';
   
-  // Kiểm tra mật khẩu khớp
+  // Client-side validation
   if (registerData.value.matKhau !== confirmPassword.value) {
-    error.value = 'Mật khẩu nhập lại không khớp!'
-    return
+    error.value = 'Mật khẩu nhập lại không khớp!';
+    return;
   }
 
-  // Kiểm tra độ dài mật khẩu
   if (registerData.value.matKhau.length < 6) {
-    error.value = 'Mật khẩu phải có ít nhất 6 ký tự!'
-    return
+    error.value = 'Mật khẩu phải có ít nhất 6 ký tự!';
+    return;
   }
 
-  loading.value = true
+  loading.value = true;
   
   try {
-    const result = await authService.register(registerData.value)
+    const result = await authService.register(registerData.value);
     
     if (result.success) {
-      alert('Đăng ký thành công! Vui lòng đăng nhập.')
-      router.push('/login')
+      alert('✅ Đăng ký thành công! Vui lòng đăng nhập.');
+      router.push('/login');
     } else {
-      error.value = result.message || 'Đăng ký thất bại!'
+      error.value = result.message || 'Đăng ký thất bại!';
     }
   } catch (err) {
-    error.value = 'Có lỗi xảy ra trong quá trình đăng ký!'
+    error.value = 'Có lỗi xảy ra trong quá trình đăng ký!';
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 </script>
 
 <style scoped>
@@ -143,20 +145,10 @@ const handleRegister = async (): Promise<void> => {
 .register-card {
   background: white;
   padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
   width: 100%;
-  max-width: 400px;
-}
-
-.register-card h2 {
-  text-align: center;
-  margin-bottom: 1.5rem;
-  color: #333;
-}
-
-.register-form {
-  width: 100%;
+  max-width: 450px;
 }
 
 .form-group {
@@ -167,70 +159,59 @@ const handleRegister = async (): Promise<void> => {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #333;
 }
 
-.form-control {
+.form-group input {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 5px;
   font-size: 1rem;
 }
 
-.form-control:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-}
-
-.btn-register {
+.register-btn {
   width: 100%;
+  padding: 0.75rem;
   background: #28a745;
   color: white;
   border: none;
-  padding: 0.75rem;
-  border-radius: 4px;
+  border-radius: 5px;
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.3s;
-  margin-bottom: 1rem;
 }
 
-.btn-register:hover:not(:disabled) {
+.register-btn:hover:not(:disabled) {
   background: #218838;
 }
 
-.btn-register:disabled {
-  background: #ccc;
+.register-btn:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
-.error-message {
-  color: #dc3545;
+.error {
+  color: #e74c3c;
   margin-bottom: 1rem;
   padding: 0.5rem;
-  background: #f8d7da;
-  border: 1px solid #f5c6cb;
-  border-radius: 4px;
+  background: #fdf2f2;
+  border-radius: 5px;
+  border-left: 4px solid #e74c3c;
 }
 
 .login-link {
   text-align: center;
+  margin-top: 1rem;
 }
 
-.login-link p {
-  margin: 0;
-  color: #666;
-}
-
-.link {
+.login-link a {
   color: #667eea;
   text-decoration: none;
-  font-weight: 500;
 }
 
-.link:hover {
+.login-link a:hover {
   text-decoration: underline;
 }
 </style>
+
+

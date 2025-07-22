@@ -1,37 +1,56 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import type { User } from '../../domain/entities/User'
-import { UserRepository } from '../../infrastructure/repositories/UserRepository'
+import { ref } from 'vue'
+import { AuthService } from '../../application/services/auth/AuthService'
+import type { User, LoginRequest, CreateUserRequest, AuthResponse } from '../../domain/entities/User'
 
+// Store quản lý authentication state và gọi AuthService
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User | null>(null)
-  const token = ref<string | null>(null)
+  const user = ref<Omit<User, 'matKhau'> | null>(null)
+  const isAuthenticated = ref(false)
   const loading = ref(false)
   const error = ref('')
 
-  const isAuthenticated = computed(() => !!token.value)
-  const userRepository = new UserRepository()
+  const authService = new AuthService()
 
-  const login = async (credentials: { email: string; matKhau: string }) => {
+  const login = async (loginData: LoginRequest): Promise<AuthResponse> => {
     loading.value = true
     error.value = ''
     
     try {
-      const response = await userRepository.login(credentials.email, credentials.matKhau)
+      const result = await authService.login(loginData)
       
-      if (response.success && response.data) {
-        user.value = response.data.user
-        token.value = response.data.token
-        localStorage.setItem('token', response.data.token)
-        localStorage.setItem('user', JSON.stringify(response.data.user))
+      if (result.success && result.user) {
+        user.value = result.user
+        isAuthenticated.value = true
+        localStorage.setItem('user', JSON.stringify(result.user))
       } else {
-        error.value = response.message || 'Đăng nhập thất bại'
+        error.value = result.message || 'Đăng nhập thất bại'
       }
       
-      return response
+      return result
     } catch (err) {
-      error.value = 'Lỗi kết nối'
-      return { success: false, message: 'Lỗi kết nối' }
+      error.value = 'Có lỗi xảy ra trong quá trình đăng nhập'
+      return { success: false, message: error.value }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const register = async (registerData: CreateUserRequest): Promise<AuthResponse> => {
+    loading.value = true
+    error.value = ''
+    
+    try {
+      const result = await authService.register(registerData)
+      
+      if (!result.success) {
+        error.value = result.message || 'Đăng ký thất bại'
+      }
+      
+      return result
+    } catch (err) {
+      error.value = 'Có lỗi xảy ra trong quá trình đăng ký'
+      return { success: false, message: error.value }
     } finally {
       loading.value = false
     }
@@ -39,31 +58,30 @@ export const useAuthStore = defineStore('auth', () => {
 
   const logout = () => {
     user.value = null
-    token.value = null
-    localStorage.removeItem('token')
+    isAuthenticated.value = false
     localStorage.removeItem('user')
   }
 
-  const initAuth = () => {
-    const savedToken = localStorage.getItem('token')
+  const initializeAuth = () => {
     const savedUser = localStorage.getItem('user')
-    
-    if (savedToken && savedUser) {
-      token.value = savedToken
+    if (savedUser) {
       user.value = JSON.parse(savedUser)
+      isAuthenticated.value = true
     }
   }
 
   return {
     user,
-    token,
+    isAuthenticated,
     loading,
     error,
-    isAuthenticated,
     login,
+    register,
     logout,
-    initAuth
+    initializeAuth
   }
 })
+
+
 
 

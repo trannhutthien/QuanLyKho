@@ -1,37 +1,26 @@
 import sql from 'mssql';
 
-export interface DatabaseConfig {
-  server: string;
-  port: number;
-  database: string;
-  user: string;
-  password: string;
-  options: {
-    encrypt: boolean;
-    trustServerCertificate: boolean;
-    enableArithAbort: boolean;
-  };
-}
-
-// Cấu hình kết nối SQL Server local
-const dbConfig: DatabaseConfig = {
-  server: 'localhost',
-  port: 1433,
-  database: 'QUANLY_KHOHANG',
-  user: 'sa',
-  password: 'your_password_here', // Thay bằng password SQL Server của bạn
-  options: {
-    encrypt: false,
-    trustServerCertificate: true,
-    enableArithAbort: true
-  }
-};
-
+// Database connection singleton với SQL Server
 class DatabaseConnection {
   private static instance: DatabaseConnection;
   private pool: sql.ConnectionPool | null = null;
 
-  private constructor() {}
+  private config: sql.config = {
+    user: 'sa',
+    password: '123456',
+    server: 'localhost',
+    database: 'QuanLyKhoHang',
+    options: {
+      encrypt: false,
+      trustServerCertificate: true,
+      enableArithAbort: true,
+    },
+    pool: {
+      max: 10,
+      min: 0,
+      idleTimeoutMillis: 30000,
+    },
+  };
 
   public static getInstance(): DatabaseConnection {
     if (!DatabaseConnection.instance) {
@@ -41,31 +30,40 @@ class DatabaseConnection {
   }
 
   public async connect(): Promise<sql.ConnectionPool> {
-    if (this.pool && this.pool.connected) {
-      return this.pool;
-    }
-
     try {
-      console.log('🔌 Đang kết nối SQL Server...');
-      this.pool = new sql.ConnectionPool(dbConfig);
-      await this.pool.connect();
-      console.log('✅ Kết nối SQL Server thành công!');
+      if (!this.pool) {
+        this.pool = await sql.connect(this.config);
+        console.log('✅ Database connected successfully');
+      }
       return this.pool;
     } catch (error) {
-      console.error('❌ Lỗi kết nối SQL Server:', error);
+      console.error('❌ Database connection failed:', error);
       throw error;
     }
   }
 
-  public async close(): Promise<void> {
-    if (this.pool) {
-      await this.pool.close();
-      this.pool = null;
+  public async disconnect(): Promise<void> {
+    try {
+      if (this.pool) {
+        await this.pool.close();
+        this.pool = null;
+        console.log('✅ Database disconnected');
+      }
+    } catch (error) {
+      console.error('❌ Database disconnect failed:', error);
+      throw error;
     }
   }
 
-  public getPool(): sql.ConnectionPool | null {
-    return this.pool;
+  public async testConnection(): Promise<boolean> {
+    try {
+      const pool = await this.connect();
+      const result = await pool.request().query('SELECT 1 as test');
+      return result.recordset.length > 0;
+    } catch (error) {
+      console.error('❌ Database test failed:', error);
+      return false;
+    }
   }
 }
 

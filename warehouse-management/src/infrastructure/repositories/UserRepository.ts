@@ -1,5 +1,6 @@
-import type { User, CreateUserRequest } from '../../domain/entities/User'
-import type { IUserRepository } from '../../domain/repositories/IUserRepository'
+import { dbConnection, sql } from '../database/DatabaseConnection';
+import type { User, CreateUserRequest } from '../../domain/entities/User';
+import type { IUserRepository } from '../../domain/repositories/IUserRepository';
 
 export interface LoginResult {
   success: boolean
@@ -10,102 +11,104 @@ export interface LoginResult {
   message?: string
 }
 
+// Repository thực tế kết nối SQL Server để quản lý User
 export class UserRepository implements IUserRepository {
-  // Mock data store
-  private users: User[] = [
-    {
-      id: '1',
-      email: 'admin@test.com',
-      matKhau: '123456',
-      hoTen: 'Admin Test',
-      vaiTro: 'admin',
-      trangThai: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }
-  ]
-
-  async login(email: string, matKhau: string): Promise<LoginResult> {
-    try {
-      if (email === 'admin@test.com' && matKhau === '123456') {
-        const mockUser: User = {
-          id: '1',
-          email: 'admin@test.com',
-          matKhau: '',
-          hoTen: 'Admin Test',
-          vaiTro: 'admin',
-          trangThai: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-        
-        return {
-          success: true,
-          data: {
-            user: mockUser,
-            token: 'mock-jwt-token'
-          }
-        }
-      }
-      
-      return {
-        success: false,
-        message: 'Email hoặc mật khẩu không đúng'
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Lỗi kết nối server'
-      }
-    }
-  }
-
+  
   async findByEmail(email: string): Promise<User | null> {
-    const user = this.users.find(u => u.email === email)
-    return user || null
+    try {
+      const pool = await dbConnection.connect();
+      const result = await pool.request()
+        .input('email', sql.NVarChar, email)
+        .query(`
+          SELECT maNguoiDung as id, email, matKhau, tenNguoiDung as hoTen,
+                 quyenTruyCap as vaiTro, trangThai, ngayTao as createdAt, 
+                 ngayCapNhat as updatedAt
+          FROM NguoiDung 
+          WHERE email = @email AND trangThai = 1
+        `);
+      
+      if (result.recordset.length === 0) return null;
+      
+      const user = result.recordset[0];
+      return {
+        ...user,
+        vaiTro: user.vaiTro === 2 ? 'admin' : 'user',
+        trangThai: user.trangThai === 1
+      };
+    } catch (error) {
+      console.error('❌ Lỗi tìm user theo email:', error);
+      throw error;
+    }
   }
 
   async create(userData: CreateUserRequest): Promise<User> {
-    const newUser: User = {
-      id: Date.now().toString(),
-      email: userData.email,
-      matKhau: userData.matKhau,
-      hoTen: userData.tenNguoiDung,
-      vaiTro: 'user',
-      trangThai: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
+    try {
+      const pool = await dbConnection.connect();
+      const maNguoiDung = `USER${Date.now().toString().slice(-6)}`;
+      
+      await pool.request()
+        .input('maNguoiDung', sql.NVarChar, maNguoiDung)
+        .input('tenNguoiDung', sql.NVarChar, userData.tenNguoiDung)
+        .input('email', sql.NVarChar, userData.email)
+        .input('matKhau', sql.NVarChar, userData.matKhau)
+        .input('quyenTruyCap', sql.TinyInt, userData.quyenTruyCap || 1)
+        .query(`
+          INSERT INTO NguoiDung (maNguoiDung, tenNguoiDung, email, matKhau, quyenTruyCap)
+          VALUES (@maNguoiDung, @tenNguoiDung, @email, @matKhau, @quyenTruyCap)
+        `);
+      
+      return await this.findByEmail(userData.email) as User;
+    } catch (error) {
+      console.error('❌ Lỗi tạo user:', error);
+      throw error;
     }
-    
-    this.users.push(newUser)
-    return newUser
   }
 
   async findById(id: string): Promise<User | null> {
-    const user = this.users.find(u => u.id === id)
-    return user || null
+    try {
+      const pool = await dbConnection.connect();
+      const result = await pool.request()
+        .input('id', sql.NVarChar, id)
+        .query(`
+          SELECT maNguoiDung as id, email, matKhau, tenNguoiDung as hoTen,
+                 quyenTruyCap as vaiTro, trangThai, ngayTao as createdAt,
+                 ngayCapNhat as updatedAt
+          FROM NguoiDung 
+          WHERE maNguoiDung = @id AND trangThai = 1
+        `);
+      
+      if (result.recordset.length === 0) return null;
+      
+      const user = result.recordset[0];
+      return {
+        ...user,
+        vaiTro: user.vaiTro === 2 ? 'admin' : 'user',
+        trangThai: user.trangThai === 1
+      };
+    } catch (error) {
+      console.error('❌ Lỗi tìm user theo ID:', error);
+      throw error;
+    }
   }
 
   async update(id: string, userData: Partial<User>): Promise<User> {
-    const userIndex = this.users.findIndex(u => u.id === id)
-    if (userIndex === -1) {
-      throw new Error('User not found')
+    try {
+      const pool = await dbConnection.connect();
+      await pool.request()
+        .input('id', sql.NVarChar, id)
+        .input('tenNguoiDung', sql.NVarChar, userData.hoTen)
+        .input('email', sql.NVarChar, userData.email)
+        .query(`
+          UPDATE NguoiDung 
+          SET tenNguoiDung = @tenNguoiDung, email = @email, ngayCapNhat = GETDATE()
+          WHERE maNguoiDung = @id
+        `);
+      
+      return await this.findById(id) as User;
+    } catch (error) {
+      console.error('❌ Lỗi cập nhật user:', error);
+      throw error;
     }
-    
-    this.users[userIndex] = { ...this.users[userIndex], ...userData, updatedAt: new Date() }
-    return this.users[userIndex]
-  }
-
-  async delete(id: string): Promise<boolean> {
-    const userIndex = this.users.findIndex(u => u.id === id)
-    if (userIndex === -1) {
-      return false
-    }
-    
-    this.users.splice(userIndex, 1)
-    return true
   }
 }
-
-
 

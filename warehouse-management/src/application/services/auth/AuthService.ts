@@ -3,6 +3,7 @@ import { RegisterCommand } from '../../commands/auth/RegisterCommand';
 import { UserRepository } from '../../../infrastructure/repositories/UserRepository';
 import type { LoginRequest, CreateUserRequest, AuthResponse } from '../../../domain/entities/User';
 
+// Service điều phối các auth commands và repositories
 export class AuthService {
   private userRepository = new UserRepository();
   private loginCommand = new LoginCommand(this.userRepository);

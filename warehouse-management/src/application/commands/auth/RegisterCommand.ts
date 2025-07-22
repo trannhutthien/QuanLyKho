@@ -1,11 +1,28 @@
 import type { IUserRepository } from '../../../domain/repositories/IUserRepository'
 import type { CreateUserRequest, AuthResponse } from '../../../domain/entities/User'
 
+// Command xử lý logic đăng ký với validation
 export class RegisterCommand {
   constructor(private userRepository: IUserRepository) {}
 
   async execute(registerData: CreateUserRequest): Promise<AuthResponse> {
     try {
+      // Validation email format
+      if (!this.isValidEmail(registerData.email)) {
+        return {
+          success: false,
+          message: 'Email không hợp lệ!'
+        }
+      }
+
+      // Validation password strength
+      if (registerData.matKhau.length < 6) {
+        return {
+          success: false,
+          message: 'Mật khẩu phải có ít nhất 6 ký tự!'
+        }
+      }
+
       // Kiểm tra email đã tồn tại
       const existingUser = await this.userRepository.findByEmail(registerData.email)
       if (existingUser) {
@@ -32,4 +49,10 @@ export class RegisterCommand {
       }
     }
   }
+
+  private isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email)
+  }
 }
+
