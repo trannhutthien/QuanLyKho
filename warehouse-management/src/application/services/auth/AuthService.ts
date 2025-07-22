@@ -1,7 +1,7 @@
 import { LoginCommand } from '../../commands/auth/LoginCommand';
 import { RegisterCommand } from '../../commands/auth/RegisterCommand';
 import { UserRepository } from '../../../infrastructure/repositories/UserRepository';
-import { LoginRequest, CreateUserRequest, AuthResponse } from '../../../domain/entities/User';
+import type { LoginRequest, CreateUserRequest, AuthResponse } from '../../../domain/entities/User';
 
 export class AuthService {
   private userRepository = new UserRepository();

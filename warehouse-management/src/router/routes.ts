@@ -1,9 +1,5 @@
 import type { RouteRecordRaw } from 'vue-router'
 
-// Lazy loading components
-const LoginView = () => import('../presentation/views/auth/LoginView.vue')
-const DashboardView = () => import('../presentation/views/DashboardView.vue')
-
 export const routes: RouteRecordRaw[] = [
   {
     path: '/',
@@ -12,12 +8,19 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'Login',
-    component: LoginView
+    component: () => import('../presentation/views/auth/LoginView.vue')
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('../presentation/views/auth/RegisterView.vue')
   },
   {
     path: '/dashboard',
     name: 'Dashboard',
-    component: DashboardView,
+    component: () => import('../presentation/views/DashboardView.vue'),
     meta: { requiresAuth: true }
   }
 ]
+
+

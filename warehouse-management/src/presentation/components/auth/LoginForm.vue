@@ -35,9 +35,12 @@
     >
       {{ authStore.loading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
     </button>
-    
- 
-    
+
+    <div class="register-link">
+      <p>Chưa có tài khoản? 
+        <router-link to="/register" class="link">Đăng ký ngay</router-link>
+      </p>
+    </div>
   </form>
 </template>
 
@@ -108,6 +111,7 @@ const handleLogin = async (): Promise<void> => {
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.3s;
+  margin-bottom: 1rem;
 }
 
 .btn-login:hover:not(:disabled) {
@@ -128,16 +132,24 @@ const handleLogin = async (): Promise<void> => {
   border-radius: 4px;
 }
 
-.demo-info {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: #e7f3ff;
-  border-radius: 4px;
-  font-size: 0.9rem;
+.register-link {
+  text-align: center;
 }
 
-.demo-info p {
-  margin: 0.25rem 0;
+.register-link p {
+  margin: 0;
+  color: #666;
+}
+
+.link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.link:hover {
+  text-decoration: underline;
 }
 </style>
+
 
